@@ -1,23 +1,19 @@
-### HOMEMADE GH (GitHub CLi) commandline completion
+### HOMEMADE GH (GitHub CLI) commandline completion
+# Written by Lapingenieur (https://github.com/lapingenieur)
 
-### How is the command built ?
-#
-# * 'complete' is a fish internal command
-#   * the '-f' flag means there's no file name in the completion list
-#   * the '-c' flag gets the command name ( >> command <<, not argument), for us will always be '-c gh'
-#   * the '-n' flag is a command executed each time ; if exits with 0 status then the following completions are listed (else not)
-#     * 'test' just tests if an operation is true. Here it tells if the output of :
-#       * 'commandline' sets/gets infos about the current command line on the prompt
-#         * the '-o' flag gives each argument preceded by the command name ONE PER LINE (space = back to line)
-#       * '|' (aka pipe) sends the output to folowing command's standard input
-#       * 'tail' prints the end of what is given to it
-#         * the '-n' flag sets the number of line to print (1 = print last received line)
-#     equals ('=') the following word (by example : "gh")
-#   * the '-a' flag specifies a list of possible arguments separated by a space
-#   This action can be repeated if needs several checks
-# We do that for each command (and "sub-command" of github cli) we want to autocomplete
+### THIS COMPLETION FILE WILL *ONLY* WORK WITH THE FISH SHELL ###
 
-# There's also a function for GH / help part further down in the file
+# I added some functions here to make the file more readable
+# Functions summary :
+#   pnlr - Print Nth Last line [Row]
+#   pnlr - Print Nth First line [Row]
+#   tio - Test If received Options are on the prompt
+#   gh_nothelp - needed for GH / help completion
+#   gh_opthelp - needed for GH / --help option completion
+# Then just defines each completion in the same order as on the official docs
+# Reffer to https://cli.github.com/manual for more informations
+# The file sets some *local* variables to don't propose wrong completions
+# These are then deleted when fish finished reading the file
 
 function pnlr
 # pnrl - Print Nth Last Line
@@ -39,9 +35,19 @@ function tio
 	end
 end
 
-# GH / --help option
-# always allow --help argument if command line isn't starting by 'gh help' and if 
+function gh_nothelp
+# gh_nothelp - needed for GH / help completion
+# verifies if doesn't command start by gh\nhelp\nhelp
+	if commandline -o | sed -z 's/\n/%/g' | egrep -q '^gh%help%help'
+		return 1
+	else
+		return 0
+	end
+end
+
 function gh_opthelp
+# gh_opthelp - --help option managing
+# needed for GH / --help option
 	if test (commandline -o | pnfr 2) = help
 		if test (commandline -o | wc -l) -lt 3
 			return 0
@@ -56,6 +62,9 @@ function gh_opthelp
 		return 0
 	end
 end
+
+# GH / --help option
+# always allow --help argument if command line isn't starting by 'gh help' and if 
 complete -f -c gh -n "gh_opthelp" -a "--help" -d "Show help"
 
 # GH
@@ -158,14 +167,6 @@ complete    -c gh -n "test (commandline -o | pnfr 2) = gist && test (commandline
 complete    -c gh -n "test (commandline -o | pnfr 2) = gist && test (commandline -o | pnfr 3) = view"	-a --web	-d "Open gist in browser"
 
 # GH / help
-function gh_nothelp
-	if commandline -o | sed -z 's/\n/%/g' | egrep -q '^gh%help%help'
-		return 1
-	else
-		return 0
-	end
-end
-
 set -l gh_help_args 'alias|api|auth|completion|config|gist|issue|pr|release|repo|environment'
 complete -f -c gh -n "test (commandline -o | pnfr 2) = help && tio 3 '$gh_help_args' && gh_nothelp" -a environment	-d "Environment variables that can be used with gh"
 complete -f -c gh -n "test (commandline -o | pnfr 2) = help && tio 3 '$gh_help_args' && gh_nothelp" -a alias		-d "Create command shortcuts"
